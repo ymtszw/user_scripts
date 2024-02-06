@@ -2,7 +2,7 @@
 // @name         Always ignore whitespace in GitHub Pull Request diffs
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=github.com
-// @version      1.20240206.7
+// @version      1.20240206.8
 // @description  Always ignore whitespace in GitHub Pull Request diffs
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -11,7 +11,7 @@
 
 // @noframes     true
 // @run-at       document-start
-// @match        https://github.com/*/*/pull/*
+// @match        https://github.com/*/*/pull*
 // @grant        none
 // ==/UserScript==
 
