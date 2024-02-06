@@ -2,7 +2,7 @@
 // @name         Auto-confirm AWS CLI SSO login
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240206.0
+// @version      1.20240206.1
 // @description  Auto-confirm AWS CLI SSO login
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
