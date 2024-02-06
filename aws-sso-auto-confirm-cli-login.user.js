@@ -2,7 +2,7 @@
 // @name         Auto-confirm AWS CLI SSO login
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240206.1
+// @version      1.20240206.2
 // @description  Auto-confirm AWS CLI SSO login
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -58,7 +58,11 @@ function findAndClickAllowButton(remaining_attempt) {
     )
   ) {
     window.requestAnimationFrame(findAndClickConfirmButton(1_000));
-  } else if (window.location.hostname?.startsWith("siiibo-sso.awsapps.com")) {
+  } else if (
+    window.location.href.match(
+      new RegExp("https://.+.awsapps.com/start/user-consent/authorize.html")
+    )
+  ) {
     window.requestAnimationFrame(findAndClickAllowButton(1_000));
   } else {
     console.log("Unexpected hostname");
