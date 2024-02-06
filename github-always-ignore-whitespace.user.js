@@ -15,23 +15,28 @@
 // @grant        none
 // ==/UserScript==
 
-function checkUrlAndRedirect() {
-  const q = new URLSearchParams(window.location.search);
+function checkUrlAndRedirect(urlLike = window.location) {
+  const q = new URLSearchParams(urlLike.search);
 
   if (!q.has("w")) {
     console.log("Ignoring whitespace...");
-    const newUrl = new URL(window.location);
+    const newUrl = new URL(urlLike);
     newUrl.searchParams.set("w", "1");
     window.location.assign(newUrl.toString());
   } else {
     console.log("Already ignoring whitespace");
   }
 }
+const filesViewRegex = new RegExp("https://github.com/.+/.+/pull/.+/files");
 
 (function () {
   "use strict";
   checkUrlAndRedirect();
-  window.addEventListener("popstate", (e) => {
-    console.log("popstate", e);
+
+  window.addEventListener("click", (e) => {
+    if (e.target?.href?.match(filesViewRegex)) {
+      console.log("Navigating to files view. Intercepting...");
+      checkUrlAndRedirect(new URL(e.target.href));
+    }
   });
 })();
