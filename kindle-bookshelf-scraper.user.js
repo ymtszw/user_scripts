@@ -6,7 +6,7 @@
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
-// @homepage     https://raw.githubusercontent.com/ymtszw/user_scripts/main/kindle-bookshelf-scraper.user.js
+// @downloadURL  https://raw.githubusercontent.com/ymtszw/user_scripts/main/kindle-bookshelf-scraper.user.js
 // @updateURL    https://raw.githubusercontent.com/ymtszw/user_scripts/main/kindle-bookshelf-scraper.user.js
 
 // @noframes     true
