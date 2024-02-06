@@ -11,7 +11,7 @@
 
 // @noframes     true
 // @run-at       document-idle
-// @match        https://device.sso.*.amazonaws.com/?user_code=*
+// @match        https://device.sso.ap-northeast-1.amazonaws.com/?user_code=*
 // @match        https://*.awsapps.com/start/user-consent/authorize.html?clientId=*
 // @grant        none
 // ==/UserScript==
