@@ -15,6 +15,11 @@
 // @grant        none
 // ==/UserScript==
 
+/**
+ * Update card counter in conjunction with my user CSS
+ *
+ * See https://github.com/ymtszw/user_css/blob/main/work.user.css#L102 for the CSS part
+ */
 function updateCardCounter() {
   const lists = document.querySelectorAll("ol#board > li");
   for (const list of lists) {
