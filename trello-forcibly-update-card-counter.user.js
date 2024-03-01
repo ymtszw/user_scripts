@@ -6,8 +6,8 @@
 // @description  Update card counter in conjunction with my user CSS. CSS Counter alone may not work properly.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
-// @downloadURL  https://raw.githubusercontent.com/ymtszw/user_scripts/main/trello-forcibly-update-card-counter.js
-// @updateURL    https://raw.githubusercontent.com/ymtszw/user_scripts/main/trello-forcibly-update-card-counter.js
+// @downloadURL  https://raw.githubusercontent.com/ymtszw/user_scripts/main/trello-forcibly-update-card-counter.user.js
+// @updateURL    https://raw.githubusercontent.com/ymtszw/user_scripts/main/trello-forcibly-update-card-counter.user.js
 
 // @noframes     true
 // @run-at       document-idle
