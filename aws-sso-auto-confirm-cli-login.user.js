@@ -2,7 +2,7 @@
 // @name         Auto-confirm AWS CLI SSO login
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240206.2
+// @version      1.20240322.1
 // @description  Auto-confirm AWS CLI SSO login
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -13,6 +13,7 @@
 // @run-at       document-idle
 // @match        https://device.sso.ap-northeast-1.amazonaws.com/?user_code=*
 // @match        https://*.awsapps.com/start/user-consent/authorize.html?clientId=*
+// @match        https://*.awsapps.com/start/#/?clientId=*
 // @grant        none
 // ==/UserScript==
 
@@ -61,6 +62,9 @@ function findAndClickAllowButton(remaining_attempt) {
   } else if (
     window.location.href.match(
       new RegExp("https://.+.awsapps.com/start/user-consent/authorize.html")
+    ) ||
+    window.location.href.match(
+      new RegExp("https://.+.awsapps.com/start/#/?clientId=")
     )
   ) {
     window.requestAnimationFrame(findAndClickAllowButton(1_000));
