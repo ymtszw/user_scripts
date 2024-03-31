@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      0.1.36
+// @version      1.20240331.1
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -114,7 +114,6 @@ if (!IN_SESSION && GIST_ID) {
     text: `Loaded ${Object.keys(saved).length} books from Gist`,
     silent: true,
     timeout: 2000,
-    highlight: true,
   });
 }
 
@@ -126,7 +125,6 @@ GM_notification({
   text: `Scraping page ${page}...`,
   silent: true,
   timeout: 3000,
-  highlight: true,
 });
 
 log("waiting...(3s)");
@@ -218,9 +216,8 @@ async function finishScraping() {
     GM_notification({
       title: "Kindle Bookshelf Scraper",
       text: "books not updated",
-      silent: false,
+      silent: true,
       timeout: 2000,
-      highlight: true,
     });
   }
 }
@@ -273,9 +270,8 @@ async function saveResultToGist(result) {
           text: `${
             Object.keys(result).length
           } books scraped and saved to "GIST_ID".\nClick me to open Gist revisions.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
-          silent: false,
-          timeout: 5000,
-          highlight: true,
+          silent: true,
+          timeout: 3000,
           onclick: () => {
             GM_openInTab(`https://gist.github.com/${GIST_ID}/revisions`, {
               active: true,
@@ -321,9 +317,8 @@ function saveResultToClipboard(result) {
     text: `${
       Object.keys(result).length
     } books scraped and copied to the clipboard.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
-    silent: false,
+    silent: true,
     timeout: 2000,
-    highlight: true,
   });
 }
 
