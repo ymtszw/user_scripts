@@ -2,7 +2,7 @@
 // @name         Auto-open AWS SSO Account
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240326.2
+// @version      1.20240403.1
 // @description  Auto-open AWS SSO Account
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -40,5 +40,5 @@ function findAndClickAccounts(remaining_attempt) {
 
 (function () {
   "use strict";
-  window.requestAnimationFrame(findAndClickAccounts(1_000));
+  window.requestAnimationFrame(findAndClickAccounts(100));
 })();
