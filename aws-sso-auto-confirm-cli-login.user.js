@@ -2,7 +2,7 @@
 // @name         Auto-confirm AWS CLI SSO login
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240503.1
+// @version      1.20240503.2
 // @description  Auto-confirm AWS CLI SSO login
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -13,7 +13,7 @@
 // @run-at       document-idle
 // @match        https://device.sso.ap-northeast-1.amazonaws.com/?user_code=*
 // @match        https://*.awsapps.com/start/*
-// @grant        none
+// @grant        window.close
 // ==/UserScript==
 
 function findAndClickConfirmButton(remaining_attempt) {
@@ -41,6 +41,9 @@ function findAndClickAllowButton(remaining_attempt) {
           .querySelector('button[data-testid="allow-access-button"]')
           .click();
         console.log(`Allow button found and clicked!`);
+        setTimeout(function () {
+          window.close();
+        }, 500);
       } else {
         window.requestAnimationFrame(
           findAndClickAllowButton(remaining_attempt - 1)
