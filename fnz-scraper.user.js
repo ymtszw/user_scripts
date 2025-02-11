@@ -2,7 +2,7 @@
 // @name         F*NZ* Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=www.dmm.co.jp
-// @version      1.20250211.1
+// @version      1.20250211.2
 // @description  Load book metadata from your F*NZ* content list.
 // @author       Gada / ymtszw
 // @copyright    2025, Gada / ymtszw (https://ymtszw.cc)
@@ -11,7 +11,7 @@
 
 // @noframes     true
 // @run-at       context-menu
-// @match        https://www.dmm.co.jp/dc/-/mylibrary/
+// @match        https://www.dmm.co.jp/dc/-/mylibrary/*
 // @grant        GM_notification
 // @grant        GM_setClipboard
 // @grant        GM_getValue
@@ -51,19 +51,13 @@ if (APP_ID && INDEX_NAME && API_KEY) {
         GM_setValue("API_KEY", API_KEY);
         log("Results will be put into Algolia index", APP_ID, INDEX_NAME);
       } else {
-        log(
-          "API_KEY is not registered. The end result will be copied to the clipboard."
-        );
+        log("API_KEY is not registered. The end result will be copied to the clipboard.");
       }
     } else {
-      log(
-        "INDEX_NAME is not registered. The end result will be copied to the clipboard."
-      );
+      log("INDEX_NAME is not registered. The end result will be copied to the clipboard.");
     }
   } else {
-    log(
-      "APP_ID is not registered. The end result will be copied to the clipboard."
-    );
+    log("APP_ID is not registered. The end result will be copied to the clipboard.");
   }
 }
 
@@ -93,8 +87,79 @@ GM_notification({
   timeout: 3000,
 });
 
-log("waiting...(3s)");
-await sleep(3000);
+// 目視レビューを挟みつつ、20batchまでスクレイピングを繰り返す
+for (let i = 0; i < 20; i++) {
+  const hasMore = await scrapeSingleBatch();
+  if (!hasMore) {
+    break;
+  }
+}
+const result = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+log("Scraped", Object.keys(result).length, "books");
+saveResultToClipboard(result);
+GM_setValue("IN_SESSION", false);
+
+//
+//
+// INTERNALS
+//
+//
+
+async function scrapeSingleBatch() {
+  let hasMore = false;
+  let alreadyScraped = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+
+  for (const [dateIndex, sectionByPurchaseDate] of document.querySelectorAll('[class^="purchasedListArea"] > ul > li:has([class^="purchasedListTitle"])').entries()) {
+    const purchaseDateJapanese = sectionByPurchaseDate.querySelector('[class^="purchasedListTitle"]').textContent; // "2025年02月08日"
+    const purchaseDateIso = purchaseDateJapanese.replace(/(\d{4})年(\d{2})月(\d{2})日/, "$1-$2-$3");
+
+    for (const [bookIndex, bookLink] of sectionByPurchaseDate.querySelectorAll('a[href^="/dc/-/mylibrary/detail/=/product_id="]').entries()) {
+      const currentProductId = bookLink.href.match(/product_id=(\w+)/)[1];
+      // Skip if already scraped
+      if (alreadyScraped[currentProductId]) {
+        continue;
+      }
+
+      bookLink.scrollIntoView();
+      bookLink.click();
+      await sleep(2750);
+
+      const productDetail = document.querySelector('[class^="productDetail"]');
+      const productTypeText = productDetail.querySelector('[class^="productDetailLabel"]').textContent; // "コミック", "コミック・AI", "CG", "CG・AI", "ボイス", etc.
+      const productTypeTags = productTypeText.split("・");
+      const productTitle = productDetail.querySelector('[class^="productDetailTitle"]').textContent;
+      const productStoreUrl = productDetail.querySelector('[class^="productDetailTitle"] a').href.replace(/\?.+$/, ""); // "https://www.dmm.co.jp/dc/doujin/-/detail/=/cid=d_333668/", 末尾クエリパラメータを除去
+      const productThumbnailUrl = productDetail.querySelector('[class^="contensImage1Ta9O"] img').src; // "https://doujin-assets.dmm.co.jp/digital/comic/d_333668/d_333668pl-200x150.jpg"
+      const productCircleLink = productDetail.querySelector('a[class^="circleName"]');
+      const productCircleName = productCircleLink.textContent;
+      const productCircleUrl = productCircleLink.href; // "https://www.dmm.co.jp/dc/doujin/-/list/=/article=maker/id=213091/"
+      const productCircleId = productCircleUrl.match(/id=(\d+)/)[1];
+      const productReleaseDateJapanese = productDetail.querySelector('[class^="infoUpdate"]').textContent; // "配信日：2024年01月13日", "配信日：2024年01月13日アップデート日：2024年01月13日"
+      const productReleaseDateIso = productReleaseDateJapanese.replace(/配信日：(\d{4})年(\d{2})月(\d{2})日.*/, "$1-$2-$3");
+      const firstFileUrl = document.querySelector('[class^="boxFinder"] ul > li[class^="fileTreeItem"] a')?.href;
+
+      const bookDetail = {
+        id: currentProductId,
+        purchaseDate: purchaseDateIso,
+        title: productTitle,
+        typeTags: productTypeTags,
+        storeUrl: productStoreUrl,
+        thumbnailUrl: productThumbnailUrl,
+        circleName: productCircleName,
+        circleUrl: productCircleUrl,
+        circleId: productCircleId,
+        releaseDate: productReleaseDateIso,
+        firstFileUrl: firstFileUrl,
+      };
+      alreadyScraped[currentProductId] = bookDetail;
+      log(dateIndex, bookIndex, "Scraped", bookDetail);
+      hasMore = true;
+    }
+    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(alreadyScraped));
+  }
+  log("Has more?", hasMore);
+  return hasMore;
+}
 
 /**
  * `await sleep(1000);`のように使用することで、指定したミリ秒だけ手続き的に待機できる。
@@ -119,9 +184,7 @@ function saveResultToClipboard(result) {
   GM_setClipboard(JSON.stringify(result, undefined, 2), "text");
   GM_notification({
     title: "FNZ Scraper",
-    text: `${
-      Object.keys(result).length
-    } books scraped and copied to the clipboard.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
+    text: `${Object.keys(result).length} books scraped and copied to the clipboard.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
     silent: true,
     timeout: 2000,
   });
