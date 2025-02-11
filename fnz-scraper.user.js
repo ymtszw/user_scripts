@@ -2,7 +2,7 @@
 // @name         F*NZ* Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=www.dmm.co.jp
-// @version      1.20250211.3
+// @version      1.20250211.4
 // @description  Load book metadata from your F*NZ* content list.
 // @author       Gada / ymtszw
 // @copyright    2025, Gada / ymtszw (https://ymtszw.cc)
