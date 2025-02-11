@@ -94,10 +94,38 @@ for (let i = 0; i < 20; i++) {
     break;
   }
 }
-const result = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
+
+// スクレイピング結果をAlgoliaにput & クリップボードにコピー
+const result = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
 log("Scraped", Object.keys(result).length, "books");
+
+if (APP_ID && INDEX_NAME && API_KEY) {
+  const batchAddObjectBody = {
+    requests: Object.entries(result).map(([id, book]) => ({
+      action: "addObject",
+      body: book,
+    })),
+  };
+
+  const batchAddObjectUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/batch`;
+  await fetch(batchAddObjectUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Algolia-API-Key": API_KEY,
+      "X-Algolia-Application-Id": APP_ID,
+    },
+    body: JSON.stringify(batchAddObjectBody),
+  });
+
+  log("Successfully added objects to Algolia.");
+}
+
 saveResultToClipboard(result);
+
 GM_setValue("IN_SESSION", false);
+
+log("Scraping session ended.");
 
 //
 //
