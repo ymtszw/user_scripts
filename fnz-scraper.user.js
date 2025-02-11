@@ -2,7 +2,7 @@
 // @name         F*NZ* Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=www.dmm.co.jp
-// @version      1.20250211.2
+// @version      1.20250211.3
 // @description  Load book metadata from your F*NZ* content list.
 // @author       Gada / ymtszw
 // @copyright    2025, Gada / ymtszw (https://ymtszw.cc)
@@ -115,7 +115,7 @@ async function scrapeSingleBatch() {
 
     for (const [bookIndex, bookLink] of sectionByPurchaseDate.querySelectorAll('a[href^="/dc/-/mylibrary/detail/=/product_id="]').entries()) {
       const currentProductId = bookLink.href.match(/product_id=(\w+)/)[1];
-      // Skip if already scraped
+      // Skip if already scraped; 今回の二重ループすべてがスキップされるとhasMoreがfalseのままになるので、全体処理が停止する仕組み
       if (alreadyScraped[currentProductId]) {
         continue;
       }
@@ -140,6 +140,7 @@ async function scrapeSingleBatch() {
 
       const bookDetail = {
         id: currentProductId,
+        objectID: currentProductId,
         purchaseDate: purchaseDateIso,
         title: productTitle,
         typeTags: productTypeTags,
@@ -176,8 +177,41 @@ function sleep(t) {
  * @returns {Promise<{[id: string]: { id: string, title: string, authors: string[], img: string, acquiredDate: string }}>}
  */
 async function loadSavedResultFromAlgolia() {
-  // TODO
-  return {};
+  let cursor;
+  let page = 0;
+  const loaded = {};
+  const browseApiUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/browse`;
+
+  do {
+    const browseReqBody = {
+      cursor: cursor,
+      page: page,
+      hitsPerPage: 1000,
+      attributesToRetrieve: ["id", "objectID", "purchaseDate", "title", "typeTags", "storeUrl", "thumbnailUrl", "circleName", "circleUrl", "circleId", "releaseDate", "firstFileUrl"],
+    };
+
+    const res = await fetch(browseApiUrl, {
+      method: "POST",
+      headers: {
+        "X-Algolia-API-Key": API_KEY,
+        "X-Algolia-Application-Id": APP_ID,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(browseReqBody),
+    });
+
+    const data = await res.json();
+
+    for (const hit of data.hits) {
+      loaded[hit.objectID] = hit;
+    }
+
+    page++;
+    // 次のページが未だある場合cursorに具体値が入っている。ない場合は終了する
+    cursor = data.cursor;
+  } while (cursor);
+
+  return loaded;
 }
 
 function saveResultToClipboard(result) {
