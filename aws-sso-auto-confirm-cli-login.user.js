@@ -2,7 +2,7 @@
 // @name         Auto-confirm AWS CLI SSO login
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazonaws.com
-// @version      1.20240503.2
+// @version      1.20250212.1
 // @description  Auto-confirm AWS CLI SSO login
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -23,9 +23,7 @@ function findAndClickConfirmButton(remaining_attempt) {
         document.querySelector("button#cli_verification_btn").click();
         console.log(`Confirm button found and clicked!`);
       } else {
-        window.requestAnimationFrame(
-          findAndClickConfirmButton(remaining_attempt - 1)
-        );
+        window.requestAnimationFrame(findAndClickConfirmButton(remaining_attempt - 1));
       }
     } else {
       console.log(`Button not found`);
@@ -37,17 +35,13 @@ function findAndClickAllowButton(remaining_attempt) {
   return function (timestamp) {
     if (remaining_attempt > 0) {
       if (document.querySelector('button[data-testid="allow-access-button"]')) {
-        document
-          .querySelector('button[data-testid="allow-access-button"]')
-          .click();
+        document.querySelector('button[data-testid="allow-access-button"]').click();
         console.log(`Allow button found and clicked!`);
         setTimeout(function () {
           window.close();
         }, 500);
       } else {
-        window.requestAnimationFrame(
-          findAndClickAllowButton(remaining_attempt - 1)
-        );
+        window.requestAnimationFrame(findAndClickAllowButton(remaining_attempt - 1));
       }
     } else {
       console.log(`Allow button not found`);
@@ -58,17 +52,9 @@ function findAndClickAllowButton(remaining_attempt) {
 (function () {
   "use strict";
   console.log("Navigated to:", window.location.href);
-  if (
-    window.location.hostname?.startsWith(
-      "device.sso.ap-northeast-1.amazonaws.com"
-    )
-  ) {
+  if (window.location.hostname?.startsWith("device.sso.ap-northeast-1.amazonaws.com") || window.location.hostname?.match(new RegExp("https://.+\\.awsapps\\.com/start/#/device\\?user_code="))) {
     window.requestAnimationFrame(findAndClickConfirmButton(1_000));
-  } else if (
-    window.location.href.match(
-      new RegExp("https://.+\\.awsapps\\.com/start/#/\\?clientId=")
-    )
-  ) {
+  } else if (window.location.href.match(new RegExp("https://.+\\.awsapps\\.com/start/#/\\?clientId="))) {
     window.requestAnimationFrame(findAndClickAllowButton(1_000));
   } else {
     console.log("Irrelevant page");

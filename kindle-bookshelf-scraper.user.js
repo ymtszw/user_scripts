@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20240331.1
+// @version      1.20250212.1
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -10,7 +10,7 @@
 // @updateURL    https://raw.githubusercontent.com/ymtszw/user_scripts/main/kindle-bookshelf-scraper.user.js
 
 // @noframes     true
-// @run-at       document-idle
+// @run-at       context-menu
 // @match        https://www.amazon.co.jp/hz/mycd/digital-console/contentlist/booksAll/dateDsc/*
 // @grant        GM_notification
 // @grant        GM_setClipboard
@@ -60,20 +60,13 @@ if (GIST_ID) {
   log("Results will be put into:", GIST_ID);
 } else if (!IN_SESSION) {
   // スクレイピングセッション進行中でない場合、window.prompt()を使って設定情報の初期化を試みる
-  GIST_ID = window.prompt(
-    `Register a GitHub Gist ID for storing scraped books.json`
-  );
+  GIST_ID = window.prompt(`Register a GitHub Gist ID for storing scraped books.json`);
   if (GIST_ID) {
     GM_setValue("GIST_ID", GIST_ID);
-    AUTHORIZATION = window.prompt(
-      "Optional: Register an Authorization header value for the Gist request",
-      ""
-    );
+    AUTHORIZATION = window.prompt("Optional: Register an Authorization header value for the Gist request", "");
     GM_setValue("AUTHORIZATION", AUTHORIZATION);
   } else {
-    log(
-      "GIST_ID is not registered. The end result will be copied to the clipboard."
-    );
+    log("GIST_ID is not registered. The end result will be copied to the clipboard.");
   }
 }
 
@@ -81,9 +74,7 @@ if (GIST_ID) {
  * `pageNumber`URLパラメータの値。インクリメントして次のページへの遷移に利用する
  * @type {number}
  */
-let page = parseInt(
-  new URLSearchParams(document.location.search).get("pageNumber") || "1"
-);
+let page = parseInt(new URLSearchParams(document.location.search).get("pageNumber") || "1");
 
 log("waiting...(1s)");
 await sleep(1000);
@@ -94,9 +85,7 @@ await sleep(1000);
  * この値が`page`と異なる場合、コンテンツ一覧の最終ページに到達したことを示しているので、スクレイピングを終了する。
  * @type {number}
  */
-const page_ = parseInt(
-  new URLSearchParams(document.location.search).get("pageNumber") || "1"
-);
+const page_ = parseInt(new URLSearchParams(document.location.search).get("pageNumber") || "1");
 if (page !== page_) {
   log("pageNumber truncated to", page_);
   log("HALT!");
@@ -133,9 +122,7 @@ await sleep(3000);
 const scraped = booksPerPage();
 
 if (Object.keys(scraped).length > 0) {
-  const prev = JSON.parse(
-    window.localStorage.getItem(LOCAL_STORAGE_KEY) || "{}"
-  );
+  const prev = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY) || "{}");
   // Note: 保存データの形式を変更した際は、再度全件スクレイピングするためにallKnownを迂回する必要がある
   const allKnown = Object.keys(scraped).every((id) => !!prev[id]);
   if (allKnown || page > NAVIGATION_LIMIT) {
@@ -178,15 +165,9 @@ function booksPerPage() {
     const img = row.querySelector("td > div > div:nth-child(2) > img").src;
     const metadata = row.querySelector("td > div > div:nth-child(3)");
     const title = metadata.querySelector("div[id^=content-title]").innerText;
-    const id = metadata
-      .querySelector("div[id^=content-title]")
-      .id.split("-")[2];
-    const authors = metadata
-      .querySelector("div[id^=content-author]")
-      .innerText.split(", ");
-    const acquiredDate = metadata.querySelector(
-      "div[id^=content-acquired-date]"
-    ).lastChild.textContent;
+    const id = metadata.querySelector("div[id^=content-title]").id.split("-")[2];
+    const authors = metadata.querySelector("div[id^=content-author]").innerText.split(", ");
+    const acquiredDate = metadata.querySelector("div[id^=content-acquired-date]").lastChild.textContent;
     const book = { id, title, authors, img, acquiredDate };
     page[id] = book;
   });
@@ -262,14 +243,10 @@ async function saveResultToGist(result) {
       if (res.status !== 200) {
         handleSaveError(res);
       } else {
-        log(
-          `${Object.keys(result).length} books scraped and saved to "GIST_ID"`
-        );
+        log(`${Object.keys(result).length} books scraped and saved to "GIST_ID"`);
         GM_notification({
           title: "Kindle Bookshelf Scraper",
-          text: `${
-            Object.keys(result).length
-          } books scraped and saved to "GIST_ID".\nClick me to open Gist revisions.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
+          text: `${Object.keys(result).length} books scraped and saved to "GIST_ID".\nClick me to open Gist revisions.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
           silent: true,
           timeout: 3000,
           onclick: () => {
@@ -300,23 +277,18 @@ async function triggerIndexBuild() {
     Authorization: AUTHORIZATION,
     "X-GitHub-Api-Version": "2022-11-28",
   };
-  await fetch(
-    `https://api.github.com/repos/ymtszw/ymtszw.github.io/dispatches`,
-    {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({ event_type: "index-kindle-books" }),
-    }
-  );
+  await fetch(`https://api.github.com/repos/ymtszw/ymtszw.github.io/dispatches`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ event_type: "index-kindle-books" }),
+  });
 }
 
 function saveResultToClipboard(result) {
   GM_setClipboard(JSON.stringify(result, undefined, 2), "text");
   GM_notification({
     title: "Kindle Bookshelf Scraper",
-    text: `${
-      Object.keys(result).length
-    } books scraped and copied to the clipboard.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
+    text: `${Object.keys(result).length} books scraped and copied to the clipboard.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
     silent: true,
     timeout: 2000,
   });
