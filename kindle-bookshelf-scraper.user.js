@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20250212.2
+// @version      1.20250212.3
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -10,7 +10,7 @@
 // @updateURL    https://raw.githubusercontent.com/ymtszw/user_scripts/main/kindle-bookshelf-scraper.user.js
 
 // @noframes     true
-// @run-at       context-menu
+// @run-at       document-idle
 // @match        https://www.amazon.co.jp/hz/mycd/digital-console/contentlist/booksAll/dateDsc/*
 // @grant        GM_notification
 // @grant        GM_setClipboard
