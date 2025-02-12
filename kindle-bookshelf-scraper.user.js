@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20250212.1
+// @version      1.20250212.2
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
