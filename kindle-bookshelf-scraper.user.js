@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20250220.1
+// @version      1.20250220.2
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -212,6 +212,12 @@ async function finishScraping() {
       });
 
       log("Successfully added objects to Algolia.");
+      GM_notification({
+        title: "Kindle Bookshelf Scraper",
+        text: `Successfully added ${newBooks.length} objects to Algolia.`,
+        silent: true,
+        timeout: 2000,
+      });
     }
 
     saveResultToClipboard(result);
