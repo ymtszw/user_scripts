@@ -2,7 +2,7 @@
 // @name         F*NZ* Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=www.dmm.co.jp
-// @version      1.20250220.1
+// @version      1.20250220.3
 // @description  Load book metadata from your F*NZ* content list.
 // @author       Gada / ymtszw
 // @copyright    2025, Gada / ymtszw (https://ymtszw.cc)
@@ -65,8 +65,9 @@ log("waiting...(1s)");
 await sleep(1000);
 
 // スクレイピングセッション開始前であれば、最新のデータをAlgoliaから読み込んでlocalStorageを初期化
+let saved = {};
 if (!IN_SESSION && APP_ID && INDEX_NAME && API_KEY) {
-  const saved = await loadSavedResultFromAlgolia();
+  saved = await loadSavedResultFromAlgolia();
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saved));
   log(`Loaded ${Object.keys(saved).length} books from Algolia`);
   GM_notification({
@@ -97,31 +98,47 @@ for (let i = 0; i < 20; i++) {
 
 // スクレイピング結果をAlgoliaにput & クリップボードにコピー
 const result = JSON.parse(window.localStorage.getItem(LOCAL_STORAGE_KEY));
-log("Scraped", Object.keys(result).length, "books");
+const resultCount = Object.keys(result).length;
+log("scraped books", resultCount);
+const savedCount = Object.keys(saved).length;
+log("saved books", savedCount);
 
-if (APP_ID && INDEX_NAME && API_KEY) {
-  const batchAddObjectBody = {
-    requests: Object.entries(result).map(([id, book]) => ({
-      action: "addObject",
-      body: book,
-    })),
-  };
+if (resultCount !== savedCount) {
+  if (APP_ID && INDEX_NAME && API_KEY) {
+    // 新しく発見されたbookのみをAlgoliaに追加
+    const newBooks = Object.entries(result).filter(([id, book]) => !saved[id]);
+    log("new books", newBooks.length);
+    const batchAddObjectBody = {
+      requests: newBooks.map(([id, book]) => ({
+        action: "addObject",
+        body: book,
+      })),
+    };
 
-  const batchAddObjectUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/batch`;
-  await fetch(batchAddObjectUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-Algolia-API-Key": API_KEY,
-      "X-Algolia-Application-Id": APP_ID,
-    },
-    body: JSON.stringify(batchAddObjectBody),
+    const batchAddObjectUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/batch`;
+    await fetch(batchAddObjectUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Algolia-API-Key": API_KEY,
+        "X-Algolia-Application-Id": APP_ID,
+      },
+      body: JSON.stringify(batchAddObjectBody),
+    });
+
+    log("Successfully added objects to Algolia.");
+  }
+
+  saveResultToClipboard(result);
+} else {
+  log("books not updated");
+  GM_notification({
+    title: "FNZ Scraper",
+    text: "books not updated",
+    silent: true,
+    timeout: 2000,
   });
-
-  log("Successfully added objects to Algolia.");
 }
-
-saveResultToClipboard(result);
 
 GM_setValue("IN_SESSION", false);
 
