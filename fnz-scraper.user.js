@@ -2,7 +2,7 @@
 // @name         F*NZ* Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=www.dmm.co.jp
-// @version      1.20250211.4
+// @version      1.20250220.1
 // @description  Load book metadata from your F*NZ* content list.
 // @author       Gada / ymtszw
 // @copyright    2025, Gada / ymtszw (https://ymtszw.cc)
@@ -202,7 +202,7 @@ function sleep(t) {
 
 /**
  * Loads current books from Algolia.
- * @returns {Promise<{[id: string]: { id: string, title: string, authors: string[], img: string, acquiredDate: string }}>}
+ * @returns {Promise<{[id: string]: { id: string, title: string, ... }}>}
  */
 async function loadSavedResultFromAlgolia() {
   let cursor;
@@ -215,7 +215,7 @@ async function loadSavedResultFromAlgolia() {
       cursor: cursor,
       page: page,
       hitsPerPage: 1000,
-      attributesToRetrieve: ["id", "objectID", "purchaseDate", "title", "typeTags", "storeUrl", "thumbnailUrl", "circleName", "circleUrl", "circleId", "releaseDate", "firstFileUrl"],
+      attributesToRetrieve: ["*"],
     };
 
     const res = await fetch(browseApiUrl, {
