@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20250212.3
+// @version      1.20250220.1
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -46,27 +46,31 @@ const IN_SESSION = GM_getValue("IN_SESSION", false);
  */
 const NAVIGATION_LIMIT = GM_getValue("NAVIGATION_LIMIT", 5);
 
-/**
- * スクレイピング結果であるbooks.jsonを保存するGist ID
- * @type {string | null}
- */
-let GIST_ID = GM_getValue("GIST_ID", null);
-/**
- * `GIST_ID`にbooks.jsonを保存する際に`Authorization`ヘッダに設定する値(Personal Access Token)
- * @type {string}
- */
-let AUTHORIZATION = GM_getValue("AUTHORIZATION", "");
-if (GIST_ID) {
-  log("Results will be put into:", GIST_ID);
+let APP_ID = GM_getValue("APP_ID", null);
+let INDEX_NAME = GM_getValue("INDEX_NAME", null);
+let API_KEY = GM_getValue("API_KEY", "");
+if (APP_ID && INDEX_NAME && API_KEY) {
+  log("Results will be put into Algolia index", APP_ID, INDEX_NAME);
 } else if (!IN_SESSION) {
   // スクレイピングセッション進行中でない場合、window.prompt()を使って設定情報の初期化を試みる
-  GIST_ID = window.prompt(`Register a GitHub Gist ID for storing scraped books.json`);
-  if (GIST_ID) {
-    GM_setValue("GIST_ID", GIST_ID);
-    AUTHORIZATION = window.prompt("Optional: Register an Authorization header value for the Gist request", "");
-    GM_setValue("AUTHORIZATION", AUTHORIZATION);
+  APP_ID = window.prompt(`Register a Algolia App ID`);
+  if (APP_ID) {
+    GM_setValue("APP_ID", APP_ID);
+    INDEX_NAME = window.prompt("Register an Algolia index name");
+    if (INDEX_NAME) {
+      GM_setValue("INDEX_NAME", INDEX_NAME);
+      API_KEY = window.prompt("Register an Algolia API key");
+      if (API_KEY) {
+        GM_setValue("API_KEY", API_KEY);
+        log("Results will be put into Algolia index", APP_ID, INDEX_NAME);
+      } else {
+        log("API_KEY is not registered. The end result will be copied to the clipboard.");
+      }
+    } else {
+      log("INDEX_NAME is not registered. The end result will be copied to the clipboard.");
+    }
   } else {
-    log("GIST_ID is not registered. The end result will be copied to the clipboard.");
+    log("APP_ID is not registered. The end result will be copied to the clipboard.");
   }
 }
 
@@ -93,14 +97,14 @@ if (page !== page_) {
   return;
 }
 
-// スクレイピングセッション開始前であれば、最新のGistのbooks.jsonを読み込んでlocalStorageを初期化
-if (!IN_SESSION && GIST_ID) {
-  const saved = await loadSavedResultFromGist();
+// スクレイピングセッション開始前であれば、最新のデータをAlgoliaから読み込んでlocalStorageを初期化
+if (!IN_SESSION && APP_ID && INDEX_NAME && API_KEY) {
+  const saved = await loadSavedResultFromAlgolia();
   window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(saved));
-  log(`Loaded ${Object.keys(saved).length} books from Gist`);
+  log(`Loaded ${Object.keys(saved).length} books from Algolia`);
   GM_notification({
     title: "Kindle Bookshelf Scraper",
-    text: `Loaded ${Object.keys(saved).length} books from Gist`,
+    text: `Loaded ${Object.keys(saved).length} books from Algolia`,
     silent: true,
     timeout: 2000,
   });
@@ -154,7 +158,7 @@ function sleep(t) {
 
 /**
  * 現在のKindleコンテンツ一覧ページをスクレイピングし、ページ内の書籍一覧を辞書Objectで返す。
- * @returns {{[id: string]: { id: string, title: string, authors: string[], img: string, acquiredDate: string }}}
+ * @returns {{[id: string]: { id: string, objectID: string, title: string, authors: string[], img: string, acquiredDate: string }}}
  */
 function booksPerPage() {
   let page = {};
@@ -168,7 +172,7 @@ function booksPerPage() {
     const id = metadata.querySelector("div[id^=content-title]").id.split("-")[2];
     const authors = metadata.querySelector("div[id^=content-author]").innerText.split(", ");
     const acquiredDate = metadata.querySelector("div[id^=content-acquired-date]").lastChild.textContent;
-    const book = { id, title, authors, img, acquiredDate };
+    const book = { id, objectID: id, title, authors, img, acquiredDate };
     page[id] = book;
   });
 
@@ -181,17 +185,36 @@ async function finishScraping() {
   const result = JSON.parse(json);
   const resultCount = Object.keys(result).length;
   log("result books", resultCount);
-  const saved = await loadSavedResultFromGist();
+  const saved = await loadSavedResultFromAlgolia();
   const savedCount = Object.keys(saved).length;
   log("saved books", savedCount);
   if (resultCount !== savedCount) {
-    log("books updated");
-    if (GIST_ID) {
-      await saveResultToGist(result);
-      triggerIndexBuild();
-    } else {
-      saveResultToClipboard(result);
+    if (APP_ID && INDEX_NAME && API_KEY) {
+      // 新しく発見されたbookのみをAlgoliaに追加
+      const newBooks = Object.entries(result).filter(([id, book]) => !saved[id]);
+      log("new books", newBooks.length);
+      const batchAddObjectBody = {
+        requests: newBooks.map(([id, book]) => ({
+          action: "addObject",
+          body: book,
+        })),
+      };
+
+      const batchAddObjectUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/batch`;
+      await fetch(batchAddObjectUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Algolia-API-Key": API_KEY,
+          "X-Algolia-Application-Id": APP_ID,
+        },
+        body: JSON.stringify(batchAddObjectBody),
+      });
+
+      log("Successfully added objects to Algolia.");
     }
+
+    saveResultToClipboard(result);
   } else {
     log("books not updated");
     GM_notification({
@@ -204,84 +227,45 @@ async function finishScraping() {
 }
 
 /**
- * Loads current books.json from Gist.
- * @returns {Promise<{[id: string]: { id: string, title: string, authors: string[], img: string, acquiredDate: string }}>}
+ * Loads current books from Algolia.
+ * @returns {Promise<{[id: string]: { id: string, title: string ... }}>}
  */
-async function loadSavedResultFromGist() {
-  const headers = {
-    Accept: "application/vnd.github+json",
-    Authorization: AUTHORIZATION,
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
-  const res = await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    headers,
-  });
-  const body = await res.json();
-  const rawUrl = body.files["books.json"].raw_url;
-  const res2 = await fetch(rawUrl);
-  return res2.json();
-}
+async function loadSavedResultFromAlgolia() {
+  let cursor;
+  let page = 0;
+  const loaded = {};
+  const browseApiUrl = `https://${APP_ID}-dsn.algolia.net/1/indexes/${INDEX_NAME}/browse`;
 
-async function saveResultToGist(result) {
-  const headers = {
-    Accept: "application/vnd.github+json",
-    "Content-Type": "application/json",
-    Authorization: AUTHORIZATION,
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
-  await fetch(`https://api.github.com/gists/${GIST_ID}`, {
-    method: "PATCH",
-    headers: headers,
-    body: JSON.stringify({
-      files: {
-        "books.json": { content: JSON.stringify(result, undefined, 2) },
+  do {
+    const browseReqBody = {
+      cursor: cursor,
+      page: page,
+      hitsPerPage: 1000,
+      attributesToRetrieve: ["*"],
+    };
+
+    const res = await fetch(browseApiUrl, {
+      method: "POST",
+      headers: {
+        "X-Algolia-API-Key": API_KEY,
+        "X-Algolia-Application-Id": APP_ID,
+        "Content-Type": "application/json",
       },
-    }),
-  })
-    .catch(handleSaveError)
-    .then((res) => {
-      if (res.status !== 200) {
-        handleSaveError(res);
-      } else {
-        log(`${Object.keys(result).length} books scraped and saved to "GIST_ID"`);
-        GM_notification({
-          title: "Kindle Bookshelf Scraper",
-          text: `${Object.keys(result).length} books scraped and saved to "GIST_ID".\nClick me to open Gist revisions.\nAlso you may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
-          silent: true,
-          timeout: 3000,
-          onclick: () => {
-            GM_openInTab(`https://gist.github.com/${GIST_ID}/revisions`, {
-              active: true,
-            });
-          },
-        });
-      }
+      body: JSON.stringify(browseReqBody),
     });
-}
 
-function handleSaveError(err) {
-  log("Save error:", err);
-  GM_notification({
-    title: "Kindle Bookshelf Scraper",
-    text: `Error on saving books.json!\nCheck out console logs.\nYou may find "${LOCAL_STORAGE_KEY}" entry in localStorage.`,
-    silent: false,
-    timeout: 5000,
-    highlight: true,
-  });
-}
+    const data = await res.json();
 
-async function triggerIndexBuild() {
-  const headers = {
-    Accept: "application/vnd.github+json",
-    "Content-Type": "application/json",
-    Authorization: AUTHORIZATION,
-    "X-GitHub-Api-Version": "2022-11-28",
-  };
-  await fetch(`https://api.github.com/repos/ymtszw/ymtszw.github.io/dispatches`, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify({ event_type: "index-kindle-books" }),
-  });
+    for (const hit of data.hits) {
+      loaded[hit.objectID] = hit;
+    }
+
+    page++;
+    // 次のページが未だある場合cursorに具体値が入っている。ない場合は終了する
+    cursor = data.cursor;
+  } while (cursor);
+
+  return loaded;
 }
 
 function saveResultToClipboard(result) {
