@@ -2,7 +2,7 @@
 // @name         Kindle Bookshelf Scraper
 // @namespace    https://ymtszw.cc
 // @icon         https://www.google.com/s2/favicons?sz=64&domain=amazon.co.jp
-// @version      1.20250220.2
+// @version      1.20250311.1
 // @description  Load book metadata from your kindle content list.
 // @author       Gada / ymtszw
 // @copyright    2023, Gada / ymtszw (https://ymtszw.cc)
@@ -218,6 +218,16 @@ async function finishScraping() {
         silent: true,
         timeout: 2000,
       });
+
+      await triggerWebsiteBuild();
+
+      log("Successfully triggered new website build.");
+      GM_notification({
+        title: "Kindle Bookshelf Scraper",
+        text: `Successfully triggered new website build.`,
+        silent: true,
+        timeout: 2000,
+      });
     }
 
     saveResultToClipboard(result);
@@ -272,6 +282,25 @@ async function loadSavedResultFromAlgolia() {
   } while (cursor);
 
   return loaded;
+}
+
+/**
+ * GitHub Actionsのワークフローをトリガーする
+ *
+ * @returns {Promise<Response>}
+ */
+async function triggerWebsiteBuild() {
+  const headers = {
+    Accept: "application/vnd.github+json",
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${GITHUB_TOKEN}`,
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+  return fetch(`https://api.github.com/repos/ymtszw/ymtszw.github.io/dispatches`, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ event_type: "on-demand-build" }),
+  });
 }
 
 function saveResultToClipboard(result) {
